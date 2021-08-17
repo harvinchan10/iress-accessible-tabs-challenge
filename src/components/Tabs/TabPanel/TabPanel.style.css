@@ -1,4 +1,16 @@
 .tab-panel__container {
-  padding: 10px;
-  background: grey;
+  display: none;
+  padding: 15px 10px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+  border-radius: 0 4px 4px 4px;
+  border: 1px solid #cacaca;
+  z-index: 5;
+}
+
+.tab-panel__container.is-active {
+  display: block;
+}
+
+.tab-panel__container:focus {
+    box-shadow: 0 1px 2px 2px rgba(49, 52, 228, 0.6);
 }

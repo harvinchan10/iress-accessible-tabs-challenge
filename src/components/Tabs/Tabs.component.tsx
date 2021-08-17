@@ -7,12 +7,38 @@ import TabPanel from './TabPanel/TabPanel.component';
 import type { TabsProps } from './Tabs.model';
 import "./Tabs.style.css"
 
+const TAB_LOCAL_STORAGE_KEY = "active-tabs";
+
 const Tabs: React.FC<TabsProps> = (props) => {
-    const { items, anchoring } = props;
+    const { items, anchoring, title } = props;
 
     const [activeId, setActiveId] = useState<string>("")
 
-    const retreiveTabFromAnchor = () => {
+    const itemsIDs = items.map((x) => x.id);
+
+    // Navigate to the given ID + save state on local storage
+    const navigateToTab = (id: string) => {
+        setActiveId(id);
+        setBrowserState(id);
+    }
+
+    const retriveLocalStorageState = () => {
+        const tabLocalStorage = localStorage.getItem(TAB_LOCAL_STORAGE_KEY);
+
+        if (!tabLocalStorage) {
+            return;
+        }
+
+        const parsedLocalStorage = JSON.parse(tabLocalStorage);
+        const idIndex = parsedLocalStorage.filter((x: string) => itemsIDs.includes(x));
+
+        if(idIndex.length > 0) {
+            navigateToTab(idIndex[0]);
+        }
+    }
+
+    // Get Hash from URL and set active tab
+    const retrieveHashId = () => {
         if (!anchoring || !anchoring.prefix) {
             return
         }
@@ -21,32 +47,85 @@ const Tabs: React.FC<TabsProps> = (props) => {
             return
         }
 
+
         const anchorId = window.location.hash.substring(1 + anchoring.prefix.length)
 
-        setActiveId(anchorId)
+        // If hash doesnt match any tab ID, dont do anything
+        if (items.map((x) => x.id).indexOf(anchorId) < 0) {
+            return;
+        }
+
+        navigateToTab(anchorId)
     }
 
+    const initializeTabs = () => {
+        retriveLocalStorageState();
+        retrieveHashId();
+    }
 
+    // Set active tab on browser
+    const setBrowserState = (id: string) => {
+        const tabLocalStorage = localStorage.getItem(TAB_LOCAL_STORAGE_KEY);
+
+        if (!tabLocalStorage) {
+            localStorage.setItem(TAB_LOCAL_STORAGE_KEY, JSON.stringify([id]))
+            return;
+        }
+
+        const parsedLocalStorage = JSON.parse(tabLocalStorage);
+        const newLocalStorageData = parsedLocalStorage.filter((x: string) => !itemsIDs.includes(x));
+
+        newLocalStorageData.push(id);
+        localStorage.setItem(TAB_LOCAL_STORAGE_KEY, JSON.stringify(newLocalStorageData))
+    }
+
+    // Move to selected tab and focus
+    const moveToTab = (id: string) => {
+        navigateToTab(id);
+        (document.querySelector(`[aria-controls=${id}]`) as HTMLElement).focus();
+    }
+
+    const moveToPreviousTab = () => {
+        const tabIndex = items.map((x) => x.id).indexOf(activeId);
+
+        if (tabIndex === 0) {
+            moveToTab(items[items.length - 1].id);
+            return;
+        }
+
+        moveToTab(items[tabIndex - 1].id);
+    }
+
+    const moveToNextTab = () => {
+        const tabIndex = items.map((x) => x.id).indexOf(activeId);
+
+        if (tabIndex === items.length - 1) {
+            moveToTab(items[0].id);
+            return;
+        }
+
+        moveToTab(items[tabIndex + 1].id);
+    }
 
     const keyDownHandler = (e: React.KeyboardEvent<HTMLDivElement>) => {
         switch (e.key) {
             case KeyboardKeys.ARROW_LEFT:
-                console.log('arrow left');
+                moveToPreviousTab();
+                break;
+            case KeyboardKeys.ARROW_RIGHT:
+                moveToNextTab();
+                break;
+            case KeyboardKeys.HOME:
+                moveToTab(items[0].id);
+                break;
+            case KeyboardKeys.END:
+                moveToTab(items[items.length - 1].id);
                 break;
 
             default:
                 break;
         }
     };
-
-    // Reset active id to first if it's not valid
-    useEffect(() => {
-        if (!items.length || items.filter(e => e.id === activeId).length > 0) {
-            return
-        }
-
-        setActiveId(items[0].id)
-    }, [activeId])
 
     // Initialize active tab
     useEffect(() => {
@@ -56,33 +135,25 @@ const Tabs: React.FC<TabsProps> = (props) => {
 
         setActiveId(items[0].id)
 
-        retreiveTabFromAnchor()
+        initializeTabs();
     }, [])
 
-    // Sync anchor with active tab id
+    // Update active tab on hash change
     useEffect(() => {
-        if (!anchoring || !anchoring.prefix || !activeId) {
-            return
-        }
+        window.addEventListener("hashchange", retrieveHashId)
 
-        window.location.hash = `#${anchoring.prefix}${activeId}`
-    }, [activeId])
-
-    useEffect(() => {
-        window.addEventListener("hashchange", retreiveTabFromAnchor)
-
-        return () => window.removeEventListener("hashchange", retreiveTabFromAnchor)
+        return () => window.removeEventListener("hashchange", retrieveHashId)
     }, [])
 
     const context: TabContextProps = {
         activeId,
-        setActiveId,
+        handTabClick: navigateToTab,
     }
 
     return (
         <TabContext.Provider value={context}>
             <div className="tabs-container">
-                <div role="tablist" onKeyDown={(e) => keyDownHandler(e)}>
+                <div role="tablist" aria-label={title} onKeyDown={(e) => keyDownHandler(e)}>
                     {items && items.map((t, i) => <TabItem key={i} {...t} />)}
                 </div>
                 {items && items.map((t, i) => <TabPanel key={i} {...t} />)}
