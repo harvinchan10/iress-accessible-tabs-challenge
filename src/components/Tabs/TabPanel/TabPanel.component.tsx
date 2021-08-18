@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
-import { classNames } from '../../../shared/styles/classnames';
-import TabContext from '../Tab.context';
+import { classNames } from 'src/shared/styles/classnames';
+import TabContext from '../Tabs.context';
 import type { TabPanelProps } from './TabPanel.model';
 import './TabPanel.style.css'
 

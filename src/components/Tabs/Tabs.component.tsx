@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { KeyboardKeys } from '../../shared/constants';
-import type { TabContextProps } from './Tab.context';
-import TabContext from './Tab.context';
+import { KeyboardKeys } from 'src/shared/constants';
+import type { TabContextProps } from './Tabs.context';
+import TabContext from './Tabs.context';
 import TabItem from './Tab/Tab.component';
 import TabPanel from './TabPanel/TabPanel.component';
 import type { TabsProps } from './Tabs.model';
@@ -32,7 +32,7 @@ const Tabs: React.FC<TabsProps> = (props) => {
         const parsedLocalStorage = JSON.parse(tabLocalStorage);
         const idIndex = parsedLocalStorage.filter((x: string) => itemsIDs.includes(x));
 
-        if(idIndex.length > 0) {
+        if (idIndex.length > 0) {
             navigateToTab(idIndex[0]);
         }
     }
@@ -87,24 +87,14 @@ const Tabs: React.FC<TabsProps> = (props) => {
 
     const moveToPreviousTab = () => {
         const tabIndex = items.map((x) => x.id).indexOf(activeId);
-
-        if (tabIndex === 0) {
-            moveToTab(items[items.length - 1].id);
-            return;
-        }
-
-        moveToTab(items[tabIndex - 1].id);
+        const targetIndex = tabIndex === 0 ? items.length - 1 : tabIndex - 1;
+        moveToTab(items[targetIndex].id);
     }
 
     const moveToNextTab = () => {
         const tabIndex = items.map((x) => x.id).indexOf(activeId);
-
-        if (tabIndex === items.length - 1) {
-            moveToTab(items[0].id);
-            return;
-        }
-
-        moveToTab(items[tabIndex + 1].id);
+        const targetIndex = tabIndex === items.length - 1 ? 0 : tabIndex + 1;
+        moveToTab(items[targetIndex].id);
     }
 
     const keyDownHandler = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -152,7 +142,7 @@ const Tabs: React.FC<TabsProps> = (props) => {
 
     return (
         <TabContext.Provider value={context}>
-            <div className="tabs-container">
+            <div className="tabs__container">
                 <div role="tablist" aria-label={title} onKeyDown={(e) => keyDownHandler(e)}>
                     {items && items.map((t, i) => <TabItem key={i} {...t} />)}
                 </div>
